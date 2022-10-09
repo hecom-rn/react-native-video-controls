@@ -161,7 +161,7 @@ export default class VideoPlayer extends Component {
     };
   }
 
-  componentDidUpdate = prevProps => {
+  componentDidUpdate = (prevProps) => {
     const {isFullscreen} = this.props;
 
     if (prevProps.isFullscreen !== isFullscreen) {
@@ -881,7 +881,10 @@ export default class VideoPlayer extends Component {
         const position = this.state.volumeOffset + gestureState.dx;
 
         this.setVolumePosition(position);
-        state.volume = this.calculateVolumeFromVolumePosition();
+        const volume = this.calculateVolumeFromVolumePosition();
+        state.volume = volume;
+        typeof this.props.onVolume === 'function' &&
+          this.props.onVolume(volume);
 
         if (state.volume <= 0) {
           state.muted = true;
@@ -1087,7 +1090,7 @@ export default class VideoPlayer extends Component {
         {...this.player.seekPanResponder.panHandlers}>
         <View
           style={styles.seekbar.track}
-          onLayout={event =>
+          onLayout={(event) =>
             (this.player.seekerWidth = event.nativeEvent.layout.width)
           }
           pointerEvents={'none'}>
@@ -1217,7 +1220,7 @@ export default class VideoPlayer extends Component {
         <View style={[styles.player.container, this.styles.containerStyle]}>
           <Video
             {...this.props}
-            ref={videoPlayer => (this.player.ref = videoPlayer)}
+            ref={(videoPlayer) => (this.player.ref = videoPlayer)}
             resizeMode={this.state.resizeMode}
             volume={this.state.volume}
             paused={this.state.paused}
