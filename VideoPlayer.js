@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import Video from 'react-native-video';
 import {
   TouchableWithoutFeedback,
@@ -33,6 +33,7 @@ export default class VideoPlayer extends Component {
     rate: 1,
     showTimeRemaining: true,
     showHours: false,
+    disableRate: false,
   };
 
   constructor(props) {
@@ -70,6 +71,7 @@ export default class VideoPlayer extends Component {
       currentTime: 0,
       error: false,
       duration: 0,
+      showRatePan: false,
     };
 
     /**
@@ -110,6 +112,7 @@ export default class VideoPlayer extends Component {
       togglePlayPause: this._togglePlayPause.bind(this),
       toggleControls: this._toggleControls.bind(this),
       toggleTimer: this._toggleTimer.bind(this),
+      showOrHideRatePan: this._showOrHideRatePan.bind(this),
     };
 
     /**
@@ -162,7 +165,7 @@ export default class VideoPlayer extends Component {
   }
 
   componentDidUpdate = (prevProps) => {
-    const {isFullscreen} = this.props;
+    const { isFullscreen } = this.props;
 
     if (prevProps.isFullscreen !== isFullscreen) {
       this.setState({
@@ -271,7 +274,7 @@ export default class VideoPlayer extends Component {
    * Either close the video or go to a
    * new page.
    */
-  _onEnd() {}
+  _onEnd() { }
 
   /**
    * Set the error state to true which then
@@ -523,6 +526,16 @@ export default class VideoPlayer extends Component {
   _toggleTimer() {
     let state = this.state;
     state.showTimeRemaining = !state.showTimeRemaining;
+    this.setState(state);
+  }
+
+  /**
+   * Toggle between showing time remaining or
+   * video duration in the timer control
+   */
+  _showOrHideRatePan() {
+    let state = this.state;
+    state.showRatePan = !state.showRatePan;
     this.setState(state);
   }
 
@@ -1008,13 +1021,13 @@ export default class VideoPlayer extends Component {
     return (
       <View style={styles.volume.container}>
         <View
-          style={[styles.volume.fill, {width: this.state.volumeFillWidth}]}
+          style={[styles.volume.fill, { width: this.state.volumeFillWidth }]}
         />
         <View
-          style={[styles.volume.track, {width: this.state.volumeTrackWidth}]}
+          style={[styles.volume.track, { width: this.state.volumeTrackWidth }]}
         />
         <View
-          style={[styles.volume.handle, {left: this.state.volumePosition}]}
+          style={[styles.volume.handle, { left: this.state.volumePosition }]}
           {...this.player.volumePanResponder.panHandlers}>
           <Image
             style={styles.volume.icon}
@@ -1053,6 +1066,9 @@ export default class VideoPlayer extends Component {
     const playPauseControl = this.props.disablePlayPause
       ? this.renderNullControl()
       : this.renderPlayPause();
+    const rateControl = this.props.disableRate
+      ? this.renderNullControl()
+      : this.renderRate();
 
     return (
       <Animated.View
@@ -1061,18 +1077,23 @@ export default class VideoPlayer extends Component {
           {
             opacity: this.animations.bottomControl.opacity,
             marginBottom: this.animations.bottomControl.marginBottom,
+            // backgroundColor: 'white'
           },
         ]}>
         <ImageBackground
           source={require('./assets/img/bottom-vignette.png')}
-          style={[styles.controls.column]}
+          style={[styles.controls.column, {flex: 1, justifyContent: 'flex-end'}]}
           imageStyle={[styles.controls.vignette]}>
-          {seekbarControl}
           <SafeAreaView
             style={[styles.controls.row, styles.controls.bottomControlGroup]}>
             {playPauseControl}
-            {this.renderTitle()}
+            {seekbarControl}
+            {/* {this.renderTitle()} */}
             {timerControl}
+            <View style={{ width: 70, alignItems: 'center', flexDirection: 'column'}}>
+              {this.state.showRatePan && this.renderRatebar()}
+              {rateControl}
+            </View>
           </SafeAreaView>
         </ImageBackground>
       </Animated.View>
@@ -1106,12 +1127,12 @@ export default class VideoPlayer extends Component {
           />
         </View>
         <View
-          style={[styles.seekbar.handle, {left: this.state.seekerPosition}]}
+          style={[styles.seekbar.handle, { left: this.state.seekerPosition }]}
           pointerEvents={'none'}>
           <View
             style={[
               styles.seekbar.circle,
-              {backgroundColor: this.props.seekColor || '#FFF'},
+              { backgroundColor: this.props.seekColor || '#FFF' },
             ]}
             pointerEvents={'none'}
           />
@@ -1132,6 +1153,41 @@ export default class VideoPlayer extends Component {
       <Image source={source} />,
       this.methods.togglePlayPause,
       styles.controls.playPause,
+    );
+  }
+
+  setRate = (v) => {
+    this.setState({
+      showRatePan: false,
+      rate: v,
+    });
+  }
+
+  renderRatebar() {
+    const rateArr = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    const { rate } = this.state;
+    return (
+      <View
+        style={styles.ratebar.container}
+        collapsable={false}
+        {...this.player.seekPanResponder.panHandlers}>
+
+        {rateArr.map((v) => {
+          return (<TouchableWithoutFeedback onPress={() => this.setRate(v)}>
+            <Text style={{color: rate === v ? '#ff0000' : '#ffffff'}}>{`倍速${v}x`}</Text>
+          </TouchableWithoutFeedback>)
+        })}
+      </View>
+    );
+  }
+
+  renderRate() {
+    const { rate } = this.state;
+    let label = `倍速${rate}x`;
+    return this.renderControl(
+      <Text style={styles.controls.rateText}>{label}</Text>,
+      this.methods.showOrHideRatePan,
+      { marginLeft: 10 },
     );
   }
 
@@ -1312,12 +1368,13 @@ const styles = {
       justifyContent: 'space-between',
       height: null,
       width: null,
+      // backgroundColor: 'green'
     },
     vignette: {
       resizeMode: 'stretch',
     },
     control: {
-      padding: 16,
+      padding: 4,
     },
     text: {
       backgroundColor: 'transparent',
@@ -1351,11 +1408,13 @@ const styles = {
     },
     bottomControlGroup: {
       alignSelf: 'stretch',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       justifyContent: 'space-between',
       marginLeft: 12,
       marginRight: 12,
       marginBottom: 0,
+      flex: 1,
+      // backgroundColor: 'blue',
     },
     volume: {
       flexDirection: 'row',
@@ -1365,7 +1424,7 @@ const styles = {
     },
     playPause: {
       position: 'relative',
-      width: 80,
+      width: 30,
       zIndex: 0,
     },
     title: {
@@ -1378,9 +1437,15 @@ const styles = {
       textAlign: 'center',
     },
     timer: {
-      width: 80,
+      // backgroundColor: 'green'
     },
     timerText: {
+      backgroundColor: 'transparent',
+      color: '#FFF',
+      fontSize: 11,
+      textAlign: 'right',
+    },
+    rateText: {
       backgroundColor: 'transparent',
       color: '#FFF',
       fontSize: 11,
@@ -1416,12 +1481,46 @@ const styles = {
       marginLeft: 7,
     },
   }),
+  ratebar: StyleSheet.create({
+    container: {
+      alignSelf: 'stretch',     
+      // backgroundColor: 'blue',
+      maxHeight: 300,
+      marginBottom: 20,
+      justifyContent: 'space-between',
+      flex: 1,
+    },
+    track: {
+      backgroundColor: '#333',
+      height: 1,
+      position: 'relative',
+      top: 14,
+      width: '100%',
+    },
+   
+    handle: {
+      position: 'absolute',
+      marginLeft: -7,
+      height: 28,
+      width: 28,
+    },
+    circle: {
+      borderRadius: 12,
+      position: 'relative',
+      top: 8,
+      left: 8,
+      height: 12,
+      width: 12,
+    },
+  }),
   seekbar: StyleSheet.create({
     container: {
-      alignSelf: 'stretch',
       height: 28,
-      marginLeft: 20,
-      marginRight: 20,
+      marginLeft: 4,
+      marginRight: 4,
+      // flexDirection: 'row',
+      // backgroundColor: 'blue',
+      flex: 1,
     },
     track: {
       backgroundColor: '#333',
