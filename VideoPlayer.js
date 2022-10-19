@@ -165,8 +165,8 @@ export default class VideoPlayer extends Component {
   }
 
   componentDidUpdate = (prevProps) => {
-    const { isFullscreen } = this.props;
-
+    const { isFullscreen, title } = this.props;
+    this.opts.title = title;
     if (prevProps.isFullscreen !== isFullscreen) {
       this.setState({
         isFullscreen,
@@ -297,6 +297,11 @@ export default class VideoPlayer extends Component {
    * two toggles fullscreen mode.
    */
   _onScreenTouch() {
+    if (this.state.showRatePan) {
+      this.setState({
+        showRatePan: false,
+      });
+    }
     if (this.player.tapActionTimeout) {
       clearTimeout(this.player.tapActionTimeout);
       this.player.tapActionTimeout = 0;
@@ -447,6 +452,7 @@ export default class VideoPlayer extends Component {
     if (this.mounted) {
       let state = this.state;
       state.showControls = false;
+      state.showRatePan = false;
       this.hideControlAnimation();
       typeof this.events.onHideControls === 'function' &&
         this.events.onHideControls();
@@ -524,9 +530,9 @@ export default class VideoPlayer extends Component {
    * video duration in the timer control
    */
   _toggleTimer() {
-    let state = this.state;
-    state.showTimeRemaining = !state.showTimeRemaining;
-    this.setState(state);
+    // let state = this.state;
+    // state.showTimeRemaining = !state.showTimeRemaining;
+    // this.setState(state);
   }
 
   /**
@@ -560,12 +566,13 @@ export default class VideoPlayer extends Component {
    * or duration. Formatted to look as 00:00.
    */
   calculateTime() {
-    if (this.state.showTimeRemaining) {
-      const time = this.state.duration - this.state.currentTime;
-      return `-${this.formatTime(time)}`;
-    }
+    // if (this.state.showTimeRemaining) {
+    const { currentTime, duration } = this.state;
+    // const time = this.state.duration - this.state.currentTime;
+    return `${this.formatTime(currentTime)}/${this.formatTime(duration)}`;
+    // }
 
-    return this.formatTime(this.state.currentTime);
+    // return this.formatTime(this.state.currentTime);
   }
 
   /**
@@ -968,12 +975,10 @@ export default class VideoPlayer extends Component {
     const backControl = this.props.disableBack
       ? this.renderNullControl()
       : this.renderBack();
+    const titleControl = this.renderTitle();
     const volumeControl = this.props.disableVolume
       ? this.renderNullControl()
       : this.renderVolume();
-    const fullscreenControl = this.props.disableFullscreen
-      ? this.renderNullControl()
-      : this.renderFullscreen();
 
     return (
       <Animated.View
@@ -989,10 +994,12 @@ export default class VideoPlayer extends Component {
           style={[styles.controls.column]}
           imageStyle={[styles.controls.vignette]}>
           <SafeAreaView style={styles.controls.topControlGroup}>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
             {backControl}
+            {titleControl}
+            </View>
             <View style={styles.controls.pullRight}>
               {volumeControl}
-              {fullscreenControl}
             </View>
           </SafeAreaView>
         </ImageBackground>
@@ -1069,6 +1076,10 @@ export default class VideoPlayer extends Component {
     const rateControl = this.props.disableRate
       ? this.renderNullControl()
       : this.renderRate();
+    const fullscreenControl = this.props.disableFullscreen
+      ? this.renderNullControl()
+      : this.renderFullscreen();
+    const { isFullscreen } = this.state;
 
     return (
       <Animated.View
@@ -1082,21 +1093,43 @@ export default class VideoPlayer extends Component {
         ]}>
         <ImageBackground
           source={require('./assets/img/bottom-vignette.png')}
-          style={[styles.controls.column, {flex: 1, justifyContent: 'flex-end'}]}
+          style={[styles.controls.column, { justifyContent: 'flex-end' }]}
           imageStyle={[styles.controls.vignette]}>
-          <SafeAreaView
-            style={[styles.controls.row, styles.controls.bottomControlGroup]}>
-            {playPauseControl}
-            {seekbarControl}
-            {/* {this.renderTitle()} */}
-            {timerControl}
-            <View style={{ width: 70, alignItems: 'center', flexDirection: 'column'}}>
-              {this.state.showRatePan && this.renderRatebar()}
-              {rateControl}
-            </View>
-          </SafeAreaView>
+          {isFullscreen ? (
+            <SafeAreaView
+              style={[styles.controls.row, styles.controls.bottomControlGroup]}
+            >
+              {playPauseControl}
+              {seekbarControl}
+              {timerControl}
+              <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+                {rateControl}
+                {fullscreenControl}
+              </View>
+            </SafeAreaView>
+          ) : (
+
+            <SafeAreaView
+              style={[styles.controls.bottomControlGroupVertical]}
+            >
+              {this.state.showRatePan && this.renderVerticalRatebar()}
+              <View style={[{ flexDirection: 'row', marginBottom: 12 }]}>
+                {seekbarControl}
+              </View>
+              <View style={[styles.controls.row]}>
+                <View style={{ flexDirection: 'row' }}>
+                  {playPauseControl}
+                  {timerControl}
+                </View>
+                <View style={{ flexDirection: 'row' }}>
+                  {rateControl}
+                  {fullscreenControl}
+                </View>
+              </View>
+            </SafeAreaView>
+          )}
         </ImageBackground>
-      </Animated.View>
+      </Animated.View >
     );
   }
 
@@ -1163,21 +1196,39 @@ export default class VideoPlayer extends Component {
     });
   }
 
-  renderRatebar() {
-    const rateArr = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+  renderVerticalRatebar() {
+    const rateArr = [0.75, 1.0, 1.25, 1.5, 2.0];
     const { rate } = this.state;
+    console.log("renderVerticalRatebar");
     return (
       <View
         style={styles.ratebar.container}
-        collapsable={false}
-        {...this.player.seekPanResponder.panHandlers}>
+        collapsable={false} >
 
         {rateArr.map((v) => {
           return (<TouchableWithoutFeedback onPress={() => this.setRate(v)}>
-            <Text style={{color: rate === v ? '#ff0000' : '#ffffff'}}>{`倍速${v}x`}</Text>
+            <Text style={{ color: rate === v ? '#ff0000' : '#ffffff', margin: 4 }}>{`${v}倍`}</Text>
           </TouchableWithoutFeedback>)
         })}
       </View>
+    );
+  }
+
+
+  renderHorRatebar() {
+    const rateArr = [0.75, 1.0, 1.25, 1.5, 2.0];
+    const { rate } = this.state;
+    return (
+      <SafeAreaView
+        style={styles.ratebar.absContainer}
+        collapsable={false} >
+
+        {rateArr.map((v) => {
+          return (<TouchableWithoutFeedback onPress={() => this.setRate(v)}>
+            <Text style={{ color: rate === v ? '#ff0000' : '#ffffff', margin: 4 }}>{`${v}倍`}</Text>
+          </TouchableWithoutFeedback>)
+        })}
+      </SafeAreaView>
     );
   }
 
@@ -1187,7 +1238,7 @@ export default class VideoPlayer extends Component {
     return this.renderControl(
       <Text style={styles.controls.rateText}>{label}</Text>,
       this.methods.showOrHideRatePan,
-      { marginLeft: 10 },
+      { marginRight: 12 },
     );
   }
 
@@ -1269,6 +1320,7 @@ export default class VideoPlayer extends Component {
    * Provide all of our options and render the whole component.
    */
   render() {
+    const { isFullscreen, showRatePan } = this.state;
     return (
       <TouchableWithoutFeedback
         onPress={this.events.onScreenTouch}
@@ -1295,6 +1347,8 @@ export default class VideoPlayer extends Component {
           {this.renderLoader()}
           {this.renderTopControls()}
           {this.renderBottomControls()}
+
+          {isFullscreen && showRatePan && this.renderHorRatebar()}
         </View>
       </TouchableWithoutFeedback>
     );
@@ -1408,12 +1462,22 @@ const styles = {
     },
     bottomControlGroup: {
       alignSelf: 'stretch',
-      alignItems: 'flex-end',
+      alignItems: 'center',
       justifyContent: 'space-between',
       marginLeft: 12,
       marginRight: 12,
       marginBottom: 0,
-      flex: 1,
+      // flex: 1,
+      // backgroundColor: 'blue',
+    },
+    bottomControlGroupVertical: {
+      alignSelf: 'stretch',
+      alignItems: 'stretch',
+      // justifyContent: 'space-between',
+      marginLeft: 12,
+      marginRight: 12,
+      marginBottom: 0,
+      flexDirection: 'column',
       // backgroundColor: 'blue',
     },
     volume: {
@@ -1429,7 +1493,7 @@ const styles = {
     },
     title: {
       alignItems: 'center',
-      flex: 0.6,
+      // flex: 0.6,
       flexDirection: 'column',
       padding: 0,
     },
@@ -1483,35 +1547,21 @@ const styles = {
   }),
   ratebar: StyleSheet.create({
     container: {
-      alignSelf: 'stretch',     
-      // backgroundColor: 'blue',
-      maxHeight: 300,
-      marginBottom: 20,
-      justifyContent: 'space-between',
-      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: 'rgba(66,66,66,0.9)',
+      borderRadius: 4,
+      marginBottom: 12,
+      marginHorizontal: 8,
+      justifyContent: 'space-around',
     },
-    track: {
-      backgroundColor: '#333',
-      height: 1,
-      position: 'relative',
-      top: 14,
-      width: '100%',
-    },
-   
-    handle: {
+    absContainer: {
       position: 'absolute',
-      marginLeft: -7,
-      height: 28,
-      width: 28,
-    },
-    circle: {
-      borderRadius: 12,
-      position: 'relative',
-      top: 8,
-      left: 8,
-      height: 12,
-      width: 12,
-    },
+      top: 0,
+      bottom: 0,
+      right: 0,
+      backgroundColor: 'rgba(22,22,22,0.9)',
+      justifyContent: 'space-around',
+    }
   }),
   seekbar: StyleSheet.create({
     container: {
