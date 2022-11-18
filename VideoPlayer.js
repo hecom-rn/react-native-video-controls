@@ -1093,7 +1093,7 @@ export default class VideoPlayer extends Component {
         ]}>
         <ImageBackground
           source={require('./assets/img/bottom-vignette.png')}
-          style={[styles.controls.column, { justifyContent: 'flex-end' }]}
+          style={[styles.controls.column, { justifyContent: 'flex-end', paddingBottom: 20 }]}
           imageStyle={[styles.controls.vignette]}>
           {isFullscreen ? (
             <SafeAreaView
@@ -1506,13 +1506,13 @@ const styles = {
     timerText: {
       backgroundColor: 'transparent',
       color: '#FFF',
-      fontSize: 11,
+      fontSize: 14,
       textAlign: 'right',
     },
     rateText: {
       backgroundColor: 'transparent',
       color: '#FFF',
-      fontSize: 11,
+      fontSize: 14,
       textAlign: 'right',
     },
   }),
