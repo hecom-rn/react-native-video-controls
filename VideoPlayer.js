@@ -1199,7 +1199,7 @@ export default class VideoPlayer extends Component {
   renderVerticalRatebar() {
     const rateArr = [0.75, 1.0, 1.25, 1.5, 2.0];
     const { rate } = this.state;
-    console.log("renderVerticalRatebar");
+
     return (
       <View
         style={styles.ratebar.container}
@@ -1207,7 +1207,7 @@ export default class VideoPlayer extends Component {
 
         {rateArr.map((v) => {
           return (<TouchableWithoutFeedback onPress={() => this.setRate(v)}>
-            <Text style={{ color: rate === v ? '#ff0000' : '#ffffff', margin: 4 }}>{`${v}倍`}</Text>
+            <Text style={{ color: rate === v ? '#ff0000' : '#ffffff', paddingVertical: 4, paddingHorizontal: 8 }}>{`${v}倍`}</Text>
           </TouchableWithoutFeedback>)
         })}
       </View>
