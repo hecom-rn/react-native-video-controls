@@ -53,7 +53,7 @@ export default class VideoPlayer extends Component {
       // Controls
 
       isFullscreen:
-        this.props.isFullScreen || this.props.resizeMode === 'cover' || false,
+        this.props.isFullscreen || this.props.resizeMode === 'cover' || false,
       showTimeRemaining: this.props.showTimeRemaining,
       showHours: this.props.showHours,
       volumeTrackWidth: 0,
@@ -1409,6 +1409,10 @@ const styles = {
     },
   }),
   controls: StyleSheet.create({
+    back: {
+      paddingVertical: 4,
+      paddingHorizontal: 6,
+    },  
     row: {
       flexDirection: 'row',
       alignItems: 'center',
