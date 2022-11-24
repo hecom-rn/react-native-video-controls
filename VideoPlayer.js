@@ -139,11 +139,11 @@ export default class VideoPlayer extends Component {
 
     this.animations = {
       bottomControl: {
-        marginBottom: new Animated.Value(0),
+        marginBottom: new Animated.Value(-100),
         opacity: new Animated.Value(initialValue),
       },
       topControl: {
-        marginTop: new Animated.Value(0),
+        marginTop: new Animated.Value(-100),
         opacity: new Animated.Value(initialValue),
       },
       video: {
