@@ -1102,7 +1102,7 @@ export default class VideoPlayer extends Component {
               {playPauseControl}
               {seekbarControl}
               {timerControl}
-              <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
                 {rateControl}
                 {fullscreenControl}
               </View>
@@ -1238,7 +1238,7 @@ export default class VideoPlayer extends Component {
     return this.renderControl(
       <Text style={styles.controls.rateText}>{label}</Text>,
       this.methods.showOrHideRatePan,
-      { marginRight: 12 },
+      { marginRight: 6 },
     );
   }
 
@@ -1489,6 +1489,7 @@ const styles = {
     },
     fullscreen: {
       flexDirection: 'row',
+      paddingHorizontal: 8,
     },
     playPause: {
       position: 'relative',
