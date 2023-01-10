@@ -18,7 +18,7 @@ import padStart from 'lodash/padStart';
 export default class VideoPlayer extends Component {
   static defaultProps = {
     toggleResizeModeOnFullscreen: true,
-    controlAnimationTiming: 500,
+    controlAnimationTiming: 300,
     doubleTapTime: 130,
     playInBackground: false,
     playWhenInactive: false,
@@ -34,6 +34,7 @@ export default class VideoPlayer extends Component {
     showTimeRemaining: true,
     showHours: false,
     disableRate: false,
+    showExpand: false,
   };
 
   constructor(props) {
@@ -96,6 +97,7 @@ export default class VideoPlayer extends Component {
       onExitFullscreen: this.props.onExitFullscreen,
       onShowControls: this.props.onShowControls,
       onHideControls: this.props.onHideControls,
+      onExpand: this.props.onExpand,
       onLoadStart: this._onLoadStart.bind(this),
       onProgress: this._onProgress.bind(this),
       onSeek: this._onSeek.bind(this),
@@ -112,6 +114,7 @@ export default class VideoPlayer extends Component {
       togglePlayPause: this._togglePlayPause.bind(this),
       toggleControls: this._toggleControls.bind(this),
       toggleTimer: this._toggleTimer.bind(this),
+      toggleExpand: this._toggleExpand.bind(this),
       showOrHideRatePan: this._showOrHideRatePan.bind(this),
     };
 
@@ -305,7 +308,7 @@ export default class VideoPlayer extends Component {
     if (this.player.tapActionTimeout) {
       clearTimeout(this.player.tapActionTimeout);
       this.player.tapActionTimeout = 0;
-      this.methods.toggleFullscreen();
+      // this.methods.toggleFullscreen();
       const state = this.state;
       if (state.showControls) {
         this.resetControlTimeout();
@@ -523,6 +526,10 @@ export default class VideoPlayer extends Component {
     }
 
     this.setState(state);
+  }
+
+  _toggleExpand() {
+    typeof this.events.onExpand === 'function' && this.events.onExpand();
   }
 
   /**
@@ -1049,13 +1056,19 @@ export default class VideoPlayer extends Component {
    * Render fullscreen toggle and set icon based on the fullscreen state.
    */
   renderFullscreen() {
-    let source =
-      this.state.isFullscreen === true
-        ? require('./assets/img/shrink.png')
-        : require('./assets/img/expand.png');
+    let source = require('./assets/img/rotation.png');
     return this.renderControl(
       <Image source={source} />,
       this.methods.toggleFullscreen,
+      styles.controls.fullscreen,
+    );
+  }
+
+  renderExpand() {
+    let source = require('./assets/img/expand.png');
+    return this.renderControl(
+      <Image source={source} />,
+      this.methods.toggleExpand,
       styles.controls.fullscreen,
     );
   }
@@ -1079,6 +1092,10 @@ export default class VideoPlayer extends Component {
     const fullscreenControl = this.props.disableFullscreen
       ? this.renderNullControl()
       : this.renderFullscreen();
+    const expandControl = this.props.showExpand
+      ? this.renderExpand()
+      : this.renderNullControl();
+    
     const { isFullscreen } = this.state;
 
     return (
@@ -1124,6 +1141,7 @@ export default class VideoPlayer extends Component {
                 <View style={{ flexDirection: 'row' }}>
                   {rateControl}
                   {fullscreenControl}
+                  {expandControl}
                 </View>
               </View>
             </SafeAreaView>
@@ -1206,7 +1224,10 @@ export default class VideoPlayer extends Component {
         collapsable={false} >
 
         {rateArr.map((v) => {
-          return (<TouchableWithoutFeedback onPress={() => this.setRate(v)}>
+          return (<TouchableWithoutFeedback onPress={() => {
+            this.setRate(v);
+            typeof this.props.onRate === 'function' && this.props.onRate(v);
+          }}>
             <Text style={{ color: rate === v ? '#ff0000' : '#ffffff', paddingVertical: 4, paddingHorizontal: 8 }}>{`${v}倍`}</Text>
           </TouchableWithoutFeedback>)
         })}
