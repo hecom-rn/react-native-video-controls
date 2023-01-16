@@ -89,7 +89,7 @@ export default class VideoPlayer extends Component {
      * Our app listeners and associated methods
      */
     this.events = {
-      onError: this.props.onError || this._onError.bind(this),
+      onError: this._onError.bind(this),
       onBack: this.props.onBack || this._onBack.bind(this),
       onEnd: this.props.onEnd || this._onEnd.bind(this),
       onScreenTouch: this._onScreenTouch.bind(this),
@@ -291,6 +291,9 @@ export default class VideoPlayer extends Component {
     state.loading = false;
 
     this.setState(state);
+    if (typeof this.props.onError === 'function') {
+      this.props.onError(err);
+    }
   }
 
   /**
