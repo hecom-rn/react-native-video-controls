@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Video from 'react-native-video';
 import {
+  ActivityIndicator,
   TouchableWithoutFeedback,
   TouchableHighlight,
   ImageBackground,
@@ -191,7 +192,7 @@ export default class VideoPlayer extends Component {
   _onLoadStart() {
     let state = this.state;
     state.loading = true;
-    this.loadAnimation();
+    // this.loadAnimation();
     this.setState(state);
 
     if (typeof this.props.onLoadStart === 'function') {
@@ -1282,7 +1283,8 @@ export default class VideoPlayer extends Component {
     if (this.state.loading) {
       return (
         <View style={styles.loader.container}>
-          <Animated.Image
+          <ActivityIndicator color={'white'} />
+          {/* <Animated.Image
             source={require('./assets/img/loader-icon.png')}
             style={[
               styles.loader.icon,
@@ -1297,7 +1299,7 @@ export default class VideoPlayer extends Component {
                 ],
               },
             ]}
-          />
+          /> */}
         </View>
       );
     }
