@@ -1249,7 +1249,10 @@ export default class VideoPlayer extends Component {
         collapsable={false} >
 
         {rateArr.map((v) => {
-          return (<TouchableWithoutFeedback onPress={() => this.setRate(v)}>
+          return (<TouchableWithoutFeedback onPress={() => {
+             this.setRate(v);
+             typeof this.props.onRate === 'function' && this.props.onRate(v);
+          }}>
             <Text style={{ color: rate === v ? '#ff0000' : '#ffffff', margin: 4 }}>{`${v}倍`}</Text>
           </TouchableWithoutFeedback>)
         })}
