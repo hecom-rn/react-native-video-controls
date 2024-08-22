@@ -914,8 +914,6 @@ export default class VideoPlayer extends Component {
         this.setVolumePosition(position);
         const volume = this.calculateVolumeFromVolumePosition();
         state.volume = volume;
-        typeof this.props.onVolume === 'function' &&
-          this.props.onVolume(volume);
 
         if (state.volume <= 0) {
           state.muted = true;
@@ -934,6 +932,8 @@ export default class VideoPlayer extends Component {
         state.volumeOffset = state.volumePosition;
         this.setControlTimeout();
         this.setState(state);
+        const volume = this.calculateVolumeFromVolumePosition();
+        typeof this.props.onVolume === 'function' && this.props.onVolume(volume);
       },
     });
   }
