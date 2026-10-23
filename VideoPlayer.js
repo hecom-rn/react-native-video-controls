@@ -221,9 +221,26 @@ export default class VideoPlayer extends Component {
       this.setControlTimeout();
     }
 
+    // 原生 setupPlayer 阶段执行的 applyModifiers 会因 AVPlayerItem 尚未 readyToPlay
+    // 直接 return，mount 时传入的 volume/muted 被吞掉后不再重发。
+    // item 就绪（onLoad）后强制重发一次，保证静音/音量在重播（组件重挂载）后不丢。
+    this._reapplyAudioState();
+
     if (typeof this.props.onLoad === 'function') {
       this.props.onLoad(...arguments);
     }
+  }
+
+  /**
+   * Re-apply the current volume/muted to the native player.
+   * setState with identical values won't reach the native side,
+   * so we briefly deviate (mute flip + volume 0) and restore in the callback.
+   */
+  _reapplyAudioState() {
+    const { volume, muted } = this.state;
+    this.setState({ muted: !muted, volume: 0 }, () => {
+      this.setState({ muted, volume });
+    });
   }
 
   /**
@@ -820,6 +837,8 @@ export default class VideoPlayer extends Component {
       // Ask to be the responder.
       onStartShouldSetPanResponder: (evt, gestureState) => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => true,
+      // 拒绝父视图（如外层 ScrollView）抢断拖动，避免 seek 手势被打断后 seeking 卡死
+      onPanResponderTerminationRequest: (evt, gestureState) => false,
 
       /**
        * When we start the pan tell the machine that we're
@@ -880,6 +899,7 @@ export default class VideoPlayer extends Component {
         let state = this.state;
         if (time >= state.duration && !state.loading) {
           state.paused = true;
+          state.seeking = false;
           this.events.onEnd();
         } else if (state.scrubbing) {
           state.seeking = false;
@@ -891,7 +911,40 @@ export default class VideoPlayer extends Component {
         }
         this.setState(state);
       },
+
+      /**
+       * 手势被系统/父视图抢断时的兜底：seeking 若不复位，onProgress 将永远
+       * 不再刷新进度条也不执行 seek（表现为"拖动不生效、进度条钉死"）。
+       */
+      onPanResponderTerminate: (evt, gestureState) => {
+        let state = this.state;
+        state.seeking = false;
+        state.scrubbing = false;
+        state.paused = state.originallyPaused;
+        this.setSeekerPosition(this.calculateSeekerPosition());
+        this.setControlTimeout();
+        this.setState(state);
+      },
     });
+  }
+
+  /**
+   * Toggle muted state from a tap on the volume icon.
+   * Unmuting with the slider still at 0 restores the default volume.
+   */
+  _toggleMuted() {
+    let state = this.state;
+    state.muted = !state.muted;
+    if (!state.muted && state.volume <= 0) {
+      state.volume = 1;
+    }
+    this.setState(state);
+    this.setVolumePosition(this.calculateVolumePositionFromVolume());
+    state.volumeOffset = state.volumePosition;
+    this.setControlTimeout();
+    this.setState(state);
+    typeof this.props.onVolume === 'function' &&
+      this.props.onVolume(state.volume, state.muted);
   }
 
   /**
@@ -903,6 +956,11 @@ export default class VideoPlayer extends Component {
       onMoveShouldSetPanResponder: (evt, gestureState) => true,
       onPanResponderGrant: (evt, gestureState) => {
         this.clearControlTimeout();
+        this.player.volumeTapStart = {
+          x: evt.nativeEvent.pageX,
+          y: evt.nativeEvent.pageY,
+          t: Date.now(),
+        };
       },
 
       /**
@@ -931,12 +989,24 @@ export default class VideoPlayer extends Component {
        * Update the offset...
        */
       onPanResponderRelease: (evt, gestureState) => {
+        const start = this.player.volumeTapStart;
+        this.player.volumeTapStart = null;
+        const isTap =
+          start &&
+          Math.abs(evt.nativeEvent.pageX - start.x) < 5 &&
+          Math.abs(evt.nativeEvent.pageY - start.y) < 5 &&
+          Date.now() - start.t < 300;
+        if (isTap) {
+          this._toggleMuted();
+          return;
+        }
         let state = this.state;
         state.volumeOffset = state.volumePosition;
         this.setControlTimeout();
         this.setState(state);
         const volume = this.calculateVolumeFromVolumePosition();
-        typeof this.props.onVolume === 'function' && this.props.onVolume(volume);
+        typeof this.props.onVolume === 'function' &&
+          this.props.onVolume(volume, state.muted);
       },
     });
   }
@@ -1005,7 +1075,7 @@ export default class VideoPlayer extends Component {
         ]}>
         <ImageBackground
           source={require('./assets/img/top-vignette.png')}
-          style={[styles.controls.column]}
+          style={[styles.controls.column, { overflow: 'visible' }]}
           imageStyle={[styles.controls.vignette]}>
           <SafeAreaView style={styles.controls.topControlGroup}>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -1559,7 +1629,7 @@ const styles = {
       alignItems: 'center',
       justifyContent: 'flex-start',
       flexDirection: 'row',
-      height: 1,
+      height: 24,
       marginLeft: 20,
       marginRight: 20,
       width: 150,
@@ -1575,12 +1645,11 @@ const styles = {
     },
     handle: {
       position: 'absolute',
-      marginTop: -24,
-      marginLeft: -24,
-      padding: 16,
+      marginLeft: -12,
+      padding: 6,
     },
     icon: {
-      marginLeft: 7,
+      marginLeft: 2,
     },
   }),
   ratebar: StyleSheet.create({
