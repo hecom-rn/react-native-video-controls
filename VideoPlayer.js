@@ -232,14 +232,22 @@ export default class VideoPlayer extends Component {
   }
 
   /**
-   * Re-apply the current volume/muted to the native player.
+   * Re-apply the current muted state to the native player.
    * setState with identical values won't reach the native side,
-   * so we briefly deviate (mute flip + volume 0) and restore in the callback.
+   * so we briefly flip muted and restore in the callback.
+   *
+   * 仅静音态需要重发：保持用户静音跨重播（组件重挂载）不丢。
+   * 非静音态不重发——容器层 defaultProps 的 volume 为 0（历史遗留配置，
+   * iOS 端 mount 阶段被原生吞掉、首播有声音），若此时把 volume=0 一并重发，
+   * 会在 item 就绪后生效，导致 iOS 首播由有声回归为静音。
    */
   _reapplyAudioState() {
-    const { volume, muted } = this.state;
-    this.setState({ muted: !muted, volume: 0 }, () => {
-      this.setState({ muted, volume });
+    if (!this.state.muted) {
+      return;
+    }
+    const { muted } = this.state;
+    this.setState({ muted: !muted }, () => {
+      this.setState({ muted });
     });
   }
 
