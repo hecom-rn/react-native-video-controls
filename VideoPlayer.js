@@ -947,7 +947,10 @@ export default class VideoPlayer extends Component {
       state.volume = 1;
     }
     this.setState(state);
-    this.setVolumePosition(this.calculateVolumePositionFromVolume());
+    // 静音时音量条视觉归零（图标回最小位），取消静音时按音量值恢复位置
+    this.setVolumePosition(
+      state.muted ? 0 : this.calculateVolumePositionFromVolume(),
+    );
     state.volumeOffset = state.volumePosition;
     this.setControlTimeout();
     this.setState(state);
@@ -962,6 +965,8 @@ export default class VideoPlayer extends Component {
     this.player.volumePanResponder = PanResponder.create({
       onStartShouldSetPanResponder: (evt, gestureState) => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => true,
+      // 拒绝父视图（如外层 ScrollView）抢断拖动，避免音量手势被打断后滑块卡在中途
+      onPanResponderTerminationRequest: (evt, gestureState) => false,
       onPanResponderGrant: (evt, gestureState) => {
         this.clearControlTimeout();
         this.player.volumeTapStart = {
@@ -991,6 +996,20 @@ export default class VideoPlayer extends Component {
         }
 
         this.setState(state);
+      },
+
+      /**
+       * 手势被系统/父视图抢断时的兜底：volumeOffset 若不同步到当前视觉位置，
+       * 下次拖动将从旧 offset 起算，表现为滑块跳回、拖动无效（卡住）。
+       */
+      onPanResponderTerminate: (evt, gestureState) => {
+        let state = this.state;
+        state.volumeOffset = state.volumePosition;
+        this.setControlTimeout();
+        this.setState(state);
+        const volume = this.calculateVolumeFromVolumePosition();
+        typeof this.props.onVolume === 'function' &&
+          this.props.onVolume(volume, state.muted);
       },
 
       /**
