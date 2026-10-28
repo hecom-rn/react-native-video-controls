@@ -916,6 +916,10 @@ export default class VideoPlayer extends Component {
           this.setControlTimeout();
           state.paused = state.originallyPaused;
           state.seeking = false;
+          // 原生 seek 是异步的：完成前 onProgress 仍上报旧进度，若不桥接，
+          // 滑块会先被拽回旧位置、seek 完成后再跳到新位置（表现为进度条闪一下）。
+          // 置 scrubbing 让 onProgress 整体跳过，待 onSeek 确认到达后恢复正常刷新。
+          state.scrubbing = true;
         }
         this.setState(state);
       },
